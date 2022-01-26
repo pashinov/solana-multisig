@@ -19,8 +19,8 @@ pub struct Account {
     pub wallet: Pubkey,
     // Custodians of multisig account
     pub owners: Vec<Pubkey>,
-    // Set of new transactions
-    pub transactions: Vec<Pubkey>,
+    // Set of pending transactions
+    pub pending_transactions: Vec<Pubkey>,
 }
 
 impl Sealed for Account {}

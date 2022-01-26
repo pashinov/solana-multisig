@@ -12,7 +12,7 @@ use solana_program::{msg, system_instruction};
 
 use crate::instruction::MultisigInstruction;
 use crate::state::Account;
-use crate::{Transaction, MAX_OWNERS};
+use crate::{Transaction, MAX_OWNERS, MAX_TRANSACTIONS};
 
 pub struct Processor<'a, 'b> {
     program_id: &'a Pubkey,
@@ -86,7 +86,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         multisig_info.threshold = threshold;
         multisig_info.wallet = wallet_account_info.key.clone();
         multisig_info.owners.extend(owners);
-        multisig_info.transactions = vec![];
+        multisig_info.pending_transactions = vec![];
 
         Account::pack(multisig_info, &mut new_account_info.data.borrow_mut())?;
 
@@ -110,13 +110,17 @@ impl<'a, 'b> Processor<'a, 'b> {
             return Err(ProgramError::MissingRequiredSignature);
         }
 
-        let multisig_info = Account::unpack_unchecked(&multisig_account_info.data.borrow())?;
+        let mut multisig_info = Account::unpack_unchecked(&multisig_account_info.data.borrow())?;
         if !multisig_info.is_initialized {
             return Err(ProgramError::UninitializedAccount);
         }
 
         if multisig_info.wallet != *wallet_account_info.key {
             return Err(ProgramError::IllegalOwner);
+        }
+
+        if multisig_info.pending_transactions.len() >= MAX_TRANSACTIONS {
+            // TODO: custom error
         }
 
         let transaction = Transaction {
@@ -126,6 +130,7 @@ impl<'a, 'b> Processor<'a, 'b> {
             is_executed: false,
             signers: multisig_info
                 .owners
+                .clone()
                 .into_iter()
                 .map(|owner| (owner, false))
                 .collect(),
@@ -156,6 +161,11 @@ impl<'a, 'b> Processor<'a, 'b> {
             ],
         )?;
 
+        multisig_info
+            .pending_transactions
+            .push(transaction_account_info.key.clone());
+
+        Account::pack(multisig_info, &mut multisig_account_info.data.borrow_mut())?;
         Transaction::pack(transaction, &mut transaction_account_info.data.borrow_mut())?;
 
         Ok(())
@@ -172,6 +182,13 @@ impl<'a, 'b> Processor<'a, 'b> {
         if !wallet_account_info.is_signer {
             return Err(ProgramError::MissingRequiredSignature);
         }
+
+        let mut multisig_info = Account::unpack_unchecked(&multisig_account_info.data.borrow())?;
+        let transaction_index = multisig_info
+            .pending_transactions
+            .iter()
+            .position(|x| x == transaction_account_info.key)
+            .ok_or(ProgramError::Custom(1))?; // TODO: custom error
 
         let mut transaction_info =
             Transaction::unpack_unchecked(&transaction_account_info.data.borrow())?;
@@ -191,9 +208,7 @@ impl<'a, 'b> Processor<'a, 'b> {
                     false
                 }
             })
-            .ok_or(ProgramError::IllegalOwner)?;
-
-        let multisig_info = Account::unpack_unchecked(&multisig_account_info.data.borrow())?;
+            .ok_or(ProgramError::Custom(2))?; // TODO: custom error
 
         let signers_count = transaction_info
             .signers
@@ -202,12 +217,18 @@ impl<'a, 'b> Processor<'a, 'b> {
             .count() as u32;
 
         if multisig_info.threshold > signers_count {
+            // Make lamports transfer
             **multisig_account_info.try_borrow_mut_lamports()? -= transaction_info.amount;
             **recipient_account_info.try_borrow_mut_lamports()? += transaction_info.amount;
 
+            // Mark as executable
             transaction_info.is_executed = true;
+
+            // Remove from pending list
+            multisig_info.pending_transactions.remove(transaction_index);
         }
 
+        Account::pack(multisig_info, &mut multisig_account_info.data.borrow_mut())?;
         Transaction::pack(
             transaction_info,
             &mut transaction_account_info.data.borrow_mut(),
