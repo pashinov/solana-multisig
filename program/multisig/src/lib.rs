@@ -2,10 +2,12 @@ use solana_program::entrypoint::ProgramResult;
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 
+mod error;
 mod instruction;
 mod processor;
 mod state;
 
+pub use self::error::*;
 pub use self::instruction::*;
 pub use self::state::*;
 

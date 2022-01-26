@@ -12,7 +12,7 @@ use solana_program::{msg, system_instruction};
 
 use crate::instruction::MultisigInstruction;
 use crate::state::Account;
-use crate::{Transaction, MAX_OWNERS, MAX_TRANSACTIONS};
+use crate::{MultisigError, Transaction, MAX_OWNERS, MAX_TRANSACTIONS};
 
 pub struct Processor<'a, 'b> {
     program_id: &'a Pubkey,
@@ -120,7 +120,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         }
 
         if multisig_info.pending_transactions.len() >= MAX_TRANSACTIONS {
-            // TODO: custom error
+            return Err(MultisigError::PendingTransactionLimit.into());
         }
 
         let transaction = Transaction {
@@ -188,13 +188,13 @@ impl<'a, 'b> Processor<'a, 'b> {
             .pending_transactions
             .iter()
             .position(|x| x == transaction_account_info.key)
-            .ok_or(ProgramError::Custom(1))?; // TODO: custom error
+            .ok_or(MultisigError::UndefinedMultisigTransaction)?;
 
         let mut transaction_info =
             Transaction::unpack_unchecked(&transaction_account_info.data.borrow())?;
 
         if transaction_info.is_executed {
-            // TODO: custom error
+            return Err(MultisigError::TransactionAlreadyExecuted.into());
         }
 
         transaction_info
@@ -208,7 +208,7 @@ impl<'a, 'b> Processor<'a, 'b> {
                     false
                 }
             })
-            .ok_or(ProgramError::Custom(2))?; // TODO: custom error
+            .ok_or(MultisigError::InvalidCustodian)?;
 
         let signers_count = transaction_info
             .signers
