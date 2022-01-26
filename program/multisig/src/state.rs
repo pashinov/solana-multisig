@@ -21,6 +21,8 @@ pub struct Account {
     pub owners: Vec<Pubkey>,
     // Set of pending transactions
     pub pending_transactions: Vec<Pubkey>,
+    //
+    pub frozen_amount: u64,
 }
 
 impl Sealed for Account {}
@@ -31,7 +33,7 @@ impl IsInitialized for Account {
     }
 }
 
-const MULTISIG_ACCOUNT_LEN: usize = 622; // 1 + 1 + 4 + 32 + 4 + 32*MAX_OWNERS + 4 + 32*MAX_TRANSACTIONS
+const MULTISIG_ACCOUNT_LEN: usize = 630; // 1 + 1 + 4 + 32 + 4 + 32*MAX_OWNERS + 4 + 32*MAX_TRANSACTIONS + 8
 
 impl Pack for Account {
     const LEN: usize = MULTISIG_ACCOUNT_LEN;

@@ -78,7 +78,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         }
 
         if owners.len() > MAX_OWNERS {
-            return Err(ProgramError::InvalidInstructionData);
+            return Err(MultisigError::CustodianLimit.into());
         }
 
         multisig_info.is_initialized = true;
@@ -87,6 +87,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         multisig_info.wallet = wallet_account_info.key.clone();
         multisig_info.owners.extend(owners);
         multisig_info.pending_transactions = vec![];
+        multisig_info.frozen_amount = 0;
 
         Account::pack(multisig_info, &mut new_account_info.data.borrow_mut())?;
 
@@ -121,6 +122,10 @@ impl<'a, 'b> Processor<'a, 'b> {
 
         if multisig_info.pending_transactions.len() >= MAX_TRANSACTIONS {
             return Err(MultisigError::PendingTransactionLimit.into());
+        }
+
+        if multisig_info.frozen_amount + amount > multisig_account_info.lamports() {
+            return Err(MultisigError::InsufficientBalance.into());
         }
 
         let transaction = Transaction {
@@ -161,6 +166,7 @@ impl<'a, 'b> Processor<'a, 'b> {
             ],
         )?;
 
+        multisig_info.frozen_amount += amount;
         multisig_info
             .pending_transactions
             .push(transaction_account_info.key.clone());
@@ -188,7 +194,7 @@ impl<'a, 'b> Processor<'a, 'b> {
             .pending_transactions
             .iter()
             .position(|x| x == transaction_account_info.key)
-            .ok_or(MultisigError::UndefinedMultisigTransaction)?;
+            .ok_or(MultisigError::UndefinedTransaction)?;
 
         let mut transaction_info =
             Transaction::unpack_unchecked(&transaction_account_info.data.borrow())?;
@@ -223,6 +229,9 @@ impl<'a, 'b> Processor<'a, 'b> {
 
             // Mark as executable
             transaction_info.is_executed = true;
+
+            // Unlock frozen lamports
+            multisig_info.frozen_amount -= transaction_info.amount;
 
             // Remove from pending list
             multisig_info.pending_transactions.remove(transaction_index);

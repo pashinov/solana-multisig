@@ -9,12 +9,16 @@ use thiserror::Error;
 pub enum MultisigError {
     #[error("Pending transaction limit exceeded")]
     PendingTransactionLimit,
+    #[error("Multisig owners limit exceeded")]
+    CustodianLimit,
     #[error("Multisig transaction doesn't belong to multisig account")]
-    UndefinedMultisigTransaction,
+    UndefinedTransaction,
     #[error("Pending transaction limit exceeded")]
     TransactionAlreadyExecuted,
     #[error("Signer is not custodian of multisig account")]
     InvalidCustodian,
+    #[error("Insufficient multisig balance")]
+    InsufficientBalance,
 }
 impl From<MultisigError> for ProgramError {
     fn from(e: MultisigError) -> Self {
