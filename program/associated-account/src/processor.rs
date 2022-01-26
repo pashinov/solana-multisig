@@ -51,7 +51,7 @@ pub fn process_instruction(
 
     if required_lamports > 0 {
         msg!(
-            "Transfer {} lamports to the associated token account",
+            "Transfer {} lamports to the associated multisig account",
             required_lamports
         );
         invoke(
@@ -68,7 +68,7 @@ pub fn process_instruction(
         )?;
     }
 
-    msg!("Allocate space for the associated token account");
+    msg!("Allocate space for the associated multisig account");
     invoke_signed(
         &system_instruction::allocate(associated_account_info.key, multisig::Account::LEN as u64),
         &[associated_account_info.clone(), system_program_info.clone()],

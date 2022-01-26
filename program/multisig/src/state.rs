@@ -9,11 +9,15 @@ use crate::utils::*;
 pub const MAX_OWNERS: usize = 8;
 
 pub struct Account {
+    // Init status
     pub is_initialized: bool,
+    // Seed to sign transaction without private key
     pub seed: u8,
+    // Required number of signers
     pub threshold: u64,
     // Wallet address for associated multisig account
     pub wallet: Pubkey,
+    // Custodians of multisig account
     pub owners: Vec<Pubkey>,
 }
 
@@ -94,26 +98,39 @@ impl Pack for Account {
 }
 
 pub struct Transaction {
+    // The multisig account this transaction belongs to
     pub multisig: Pubkey,
+    // Recipient address
     pub recipient: Pubkey,
+    // Amount of lamports to send to recipient
     pub amount: u64,
+    // Boolean ensuring one time execution.
+    pub is_executed: bool,
+    // Owners with status of transaction signature
     pub signers: Vec<(Pubkey, bool)>,
 }
 
 impl Sealed for Transaction {}
 
 impl Pack for Transaction {
-    const LEN: usize = 340;
+    const LEN: usize = 341;
     fn pack_into_slice(&self, dst: &mut [u8]) {
         let dst = array_mut_ref![dst, 0, Transaction::LEN];
 
-        let (multisig_dst, recipient_dst, amount_dst, signers_len_dst, signers_dst) =
-            mut_array_refs![dst, 32, 32, 8, 4, (32 + 1) * MAX_OWNERS];
+        let (
+            multisig_dst,
+            recipient_dst,
+            amount_dst,
+            is_executed_dst,
+            signers_len_dst,
+            signers_dst,
+        ) = mut_array_refs![dst, 32, 32, 8, 1, 4, (32 + 1) * MAX_OWNERS];
 
         let Transaction {
             multisig,
             recipient,
             amount,
+            is_executed,
             signers,
         } = self;
 
@@ -121,6 +138,9 @@ impl Pack for Transaction {
         recipient_dst.copy_from_slice(recipient.as_ref());
 
         *amount_dst = amount.to_le_bytes();
+
+        pack_bool(*is_executed, is_executed_dst);
+
         *signers_len_dst = (signers.len() as u32).to_le_bytes();
 
         let mut offset = 0;
@@ -137,13 +157,16 @@ impl Pack for Transaction {
 
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let src = array_ref![src, 0, Transaction::LEN];
-        let (multisig, recipient, amount, signers_len, signers_data) =
-            array_refs![src, 32, 32, 8, 4, (32 + 1) * MAX_OWNERS];
+        let (multisig, recipient, amount, is_executed, signers_len, signers_data) =
+            array_refs![src, 32, 32, 8, 1, 4, (32 + 1) * MAX_OWNERS];
 
         let multisig = Pubkey::new(multisig);
         let recipient = Pubkey::new(recipient);
 
         let amount = u64::from_le_bytes(*amount);
+
+        let is_executed = unpack_bool(is_executed)?;
+
         let signers_len = u32::from_le_bytes(*signers_len);
 
         let mut signers = Vec::with_capacity((signers_len * (32 + 1)) as usize);
@@ -162,6 +185,7 @@ impl Pack for Transaction {
             multisig,
             recipient,
             amount,
+            is_executed,
             signers,
         })
     }

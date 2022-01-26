@@ -120,6 +120,7 @@ impl<'a, 'b> Processor<'a, 'b> {
             multisig: multisig_account_info.key.clone(),
             recipient: recipient_account_info.key.clone(),
             amount,
+            is_executed: false,
             signers: multisig_info
                 .owners
                 .into_iter()
@@ -170,6 +171,10 @@ impl<'a, 'b> Processor<'a, 'b> {
         let mut transaction_info =
             Transaction::unpack_unchecked(&transaction_account_info.data.borrow())?;
 
+        if transaction_info.is_executed {
+            // TODO: custom error
+        }
+
         transaction_info
             .signers
             .iter_mut()
@@ -194,7 +199,14 @@ impl<'a, 'b> Processor<'a, 'b> {
         if multisig_info.threshold > signers_count {
             **multisig_account_info.try_borrow_mut_lamports()? -= transaction_info.amount;
             **recipient_account_info.try_borrow_mut_lamports()? += transaction_info.amount;
+
+            transaction_info.is_executed = true;
         }
+
+        Transaction::pack(
+            transaction_info,
+            &mut transaction_account_info.data.borrow_mut(),
+        )?;
 
         Ok(())
     }
