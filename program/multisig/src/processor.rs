@@ -1,3 +1,5 @@
+use borsh::BorshSerialize;
+
 use solana_program::account_info::{next_account_info, AccountInfo};
 use solana_program::entrypoint::ProgramResult;
 use solana_program::program::invoke;
@@ -55,7 +57,7 @@ impl<'a, 'b> Processor<'a, 'b> {
     fn process_initialize_account(
         accounts: &[AccountInfo],
         seed: u8,
-        threshold: u64,
+        threshold: u32,
         owners: Vec<Pubkey>,
     ) -> ProgramResult {
         let account_info_iter = &mut accounts.iter();
@@ -84,6 +86,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         multisig_info.threshold = threshold;
         multisig_info.wallet = wallet_account_info.key.clone();
         multisig_info.owners.extend(owners);
+        multisig_info.transactions = vec![];
 
         Account::pack(multisig_info, &mut new_account_info.data.borrow_mut())?;
 
@@ -128,12 +131,14 @@ impl<'a, 'b> Processor<'a, 'b> {
                 .collect(),
         };
 
+        let transaction_len = transaction.try_to_vec()?.len();
+
         invoke(
             &system_instruction::create_account(
                 wallet_account_info.key,
                 transaction_account_info.key,
-                Rent::get()?.minimum_balance(Transaction::LEN),
-                Transaction::LEN as u64,
+                Rent::get()?.minimum_balance(transaction_len),
+                transaction_len as u64,
                 program_id,
             ),
             &[
@@ -194,7 +199,7 @@ impl<'a, 'b> Processor<'a, 'b> {
             .signers
             .iter()
             .filter(|(_, is_signed)| *is_signed)
-            .count() as u64;
+            .count() as u32;
 
         if multisig_info.threshold > signers_count {
             **multisig_account_info.try_borrow_mut_lamports()? -= transaction_info.amount;

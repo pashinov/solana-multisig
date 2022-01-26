@@ -5,7 +5,6 @@ use solana_program::pubkey::Pubkey;
 mod instruction;
 mod processor;
 mod state;
-mod utils;
 
 pub use self::instruction::*;
 pub use self::state::*;

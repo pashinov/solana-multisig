@@ -12,7 +12,7 @@ use crate::check_program_account;
 pub enum MultisigInstruction {
     InitializeAccount {
         seed: u8,
-        threshold: u64,
+        threshold: u32,
         owners: Vec<Pubkey>,
     },
     CreateTransaction {
@@ -36,11 +36,11 @@ impl MultisigInstruction {
                     .map(u8::from_le_bytes)
                     .ok_or(ProgramError::InvalidInstructionData)?;
 
-                let (threshold, rest) = rest.split_at(8);
+                let (threshold, rest) = rest.split_at(4);
                 let threshold = threshold
                     .try_into()
                     .ok()
-                    .map(u64::from_le_bytes)
+                    .map(u32::from_le_bytes)
                     .ok_or(ProgramError::InvalidInstructionData)?;
 
                 let (owners_len, rest) = rest.split_at(4);
