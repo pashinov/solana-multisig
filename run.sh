@@ -10,8 +10,7 @@ case $1 in
 	;;
     "deploy")
 	build_bpf
-	solana program deploy dist/program/associated_multisig_account.so
-	solana program deploy dist/program/multisig.so
+	solana program deploy dist/program/solana_multisig.so
 	;;
     "client")
 	(cd client/; cargo run)

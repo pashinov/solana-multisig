@@ -1,5 +1,3 @@
-target
-dist
 .idea/
-*/target
-*/*/target
+dist/
+program/target/

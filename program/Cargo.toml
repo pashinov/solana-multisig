@@ -1,5 +1,20 @@
-[workspace]
-members = [
-    "associated-account",
-    "multisig",
-]
+[package]
+name = "solana-multisig"
+version = "0.1.0"
+authors = ["Alexey Pashinov <pashinov93@gmail.com>"]
+license = "Apache-2.0"
+repository = "https://github.com/pashinov/multisig-solana"
+keywords = ["solana", "multisig"]
+edition = "2021"
+
+[features]
+no-entrypoint = []
+
+[dependencies]
+arrayref = "0.3"
+borsh = "0.9"
+solana-program = "1.9"
+thiserror = "1.0"
+
+[lib]
+crate-type = ["cdylib", "lib"]

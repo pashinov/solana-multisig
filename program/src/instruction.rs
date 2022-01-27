@@ -3,21 +3,12 @@ use std::convert::TryInto;
 use arrayref::array_ref;
 use borsh::BorshSerialize;
 
-use solana_program::instruction::{AccountMeta, Instruction};
 use solana_program::program_error::ProgramError;
 use solana_program::pubkey::Pubkey;
 
-use crate::check_program_account;
-
 pub enum MultisigInstruction {
-    InitializeAccount {
-        seed: u8,
-        threshold: u32,
-        owners: Vec<Pubkey>,
-    },
-    CreateTransaction {
-        amount: u64,
-    },
+    CreateAccount { threshold: u32, owners: Vec<Pubkey> },
+    CreateTransaction { amount: u64 },
     ApproveTransaction,
 }
 
@@ -29,13 +20,6 @@ impl MultisigInstruction {
 
         Ok(match tag {
             1 => {
-                let (seed, rest) = rest.split_at(1);
-                let seed = seed
-                    .try_into()
-                    .ok()
-                    .map(u8::from_le_bytes)
-                    .ok_or(ProgramError::InvalidInstructionData)?;
-
                 let (threshold, rest) = rest.split_at(4);
                 let threshold = threshold
                     .try_into()
@@ -59,11 +43,7 @@ impl MultisigInstruction {
                     offset += 32;
                 }
 
-                Self::InitializeAccount {
-                    seed,
-                    threshold,
-                    owners,
-                }
+                Self::CreateAccount { threshold, owners }
             }
             2 => {
                 let amount = rest
@@ -82,13 +62,8 @@ impl MultisigInstruction {
     pub fn pack(&self) -> Result<Vec<u8>, ProgramError> {
         let mut buf = Vec::new();
         match self {
-            Self::InitializeAccount {
-                seed,
-                threshold,
-                owners,
-            } => {
+            Self::CreateAccount { threshold, owners } => {
                 buf.push(1);
-                buf.push(*seed);
                 buf.extend_from_slice(&threshold.to_le_bytes());
                 buf.extend_from_slice(
                     &owners
@@ -106,25 +81,4 @@ impl MultisigInstruction {
         };
         Ok(buf)
     }
-}
-
-pub fn initialize_account(
-    multisig_program_id: &Pubkey,
-    associated_account_pubkey: &Pubkey,
-    wallet_account_pubkey: &Pubkey,
-    data: &[u8],
-) -> Result<Instruction, ProgramError> {
-    check_program_account(multisig_program_id)?;
-
-    let accounts = vec![
-        AccountMeta::new(*associated_account_pubkey, false),
-        AccountMeta::new(*wallet_account_pubkey, false),
-        AccountMeta::new_readonly(solana_program::sysvar::rent::id(), false),
-    ];
-
-    Ok(Instruction {
-        program_id: *multisig_program_id,
-        accounts,
-        data: data.to_vec(),
-    })
 }
