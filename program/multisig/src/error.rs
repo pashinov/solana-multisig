@@ -1,11 +1,8 @@
-//! Error types
-
-use num_derive::FromPrimitive;
-use solana_program::{decode_error::DecodeError, program_error::ProgramError};
 use thiserror::Error;
 
-/// Errors that may be returned by the Multisig program.
-#[derive(Clone, Debug, Eq, Error, FromPrimitive, PartialEq)]
+use solana_program::program_error::ProgramError;
+
+#[derive(Error, Debug, Copy, Clone)]
 pub enum MultisigError {
     #[error("Pending transaction limit exceeded")]
     PendingTransactionLimit,
@@ -19,14 +16,11 @@ pub enum MultisigError {
     InvalidCustodian,
     #[error("Insufficient multisig balance")]
     InsufficientBalance,
+    #[error("Amount Overflow")]
+    AmountOverflow,
 }
 impl From<MultisigError> for ProgramError {
     fn from(e: MultisigError) -> Self {
         ProgramError::Custom(e as u32)
-    }
-}
-impl<T> DecodeError<T> for MultisigError {
-    fn type_of() -> &'static str {
-        "MultisigError"
     }
 }

@@ -14,7 +14,7 @@ pub use self::state::*;
 #[cfg(not(feature = "no-entrypoint"))]
 mod entrypoint;
 
-solana_program::declare_id!("EANnrvYCDjBtQVoqYatjcvWARvvDhSXYjgynY1HMEVZD");
+solana_program::declare_id!("8aFG9MseL8jj4Md9ptPdY7KLuB4gGXqYqfMeVGKucWAR");
 
 pub fn check_program_account(program_id: &Pubkey) -> ProgramResult {
     if program_id != &id() {

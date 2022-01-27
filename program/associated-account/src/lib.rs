@@ -9,9 +9,11 @@ use solana_program::{
 mod entrypoint;
 mod processor;
 
+pub use self::processor::*;
+
 solana_program::declare_id!("DADjz4TQMPbgZnY2PcjKANajNSdLyQgbUHwvj9DHRz9T");
 
-pub(crate) fn get_associated_multisig_address_and_bump_seed(
+pub fn get_associated_multisig_address_and_bump_seed(
     wallet_address: &Pubkey,
     program_id: &Pubkey,
     multisig_program_id: &Pubkey,
@@ -29,6 +31,7 @@ pub fn get_associated_multisig_address(wallet_address: &Pubkey) -> Pubkey {
 pub fn create_associated_multisig_account(
     funding_address: &Pubkey,
     wallet_address: &Pubkey,
+    data: Vec<u8>,
 ) -> Instruction {
     let associated_account_address = get_associated_multisig_address(wallet_address);
 
@@ -42,6 +45,6 @@ pub fn create_associated_multisig_account(
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],
-        data: vec![],
+        data,
     }
 }

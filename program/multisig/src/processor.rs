@@ -84,7 +84,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         multisig_info.is_initialized = true;
         multisig_info.seed = seed;
         multisig_info.threshold = threshold;
-        multisig_info.wallet = wallet_account_info.key.clone();
+        multisig_info.wallet = *wallet_account_info.key;
         multisig_info.owners.extend(owners);
         multisig_info.pending_transactions = vec![];
         multisig_info.frozen_amount = 0;
@@ -129,8 +129,8 @@ impl<'a, 'b> Processor<'a, 'b> {
         }
 
         let transaction = Transaction {
-            multisig: multisig_account_info.key.clone(),
-            recipient: recipient_account_info.key.clone(),
+            multisig: *multisig_account_info.key,
+            recipient: *recipient_account_info.key,
             amount,
             is_executed: false,
             signers: multisig_info
@@ -169,7 +169,7 @@ impl<'a, 'b> Processor<'a, 'b> {
         multisig_info.frozen_amount += amount;
         multisig_info
             .pending_transactions
-            .push(transaction_account_info.key.clone());
+            .push(*transaction_account_info.key);
 
         Account::pack(multisig_info, &mut multisig_account_info.data.borrow_mut())?;
         Transaction::pack(transaction, &mut transaction_account_info.data.borrow_mut())?;
@@ -182,6 +182,7 @@ impl<'a, 'b> Processor<'a, 'b> {
 
         let wallet_account_info = next_account_info(account_info_iter)?;
         let multisig_account_info = next_account_info(account_info_iter)?;
+        let multisig_owner_account_info = next_account_info(account_info_iter)?;
         let transaction_account_info = next_account_info(account_info_iter)?;
         let recipient_account_info = next_account_info(account_info_iter)?;
 
@@ -235,6 +236,14 @@ impl<'a, 'b> Processor<'a, 'b> {
 
             // Remove from pending list
             multisig_info.pending_transactions.remove(transaction_index);
+
+            // Close transaction account
+            **transaction_account_info.try_borrow_mut_lamports()? = multisig_owner_account_info
+                .lamports()
+                .checked_add(transaction_account_info.lamports())
+                .ok_or(MultisigError::AmountOverflow)?;
+            **transaction_account_info.try_borrow_mut_lamports()? = 0;
+            *transaction_account_info.try_borrow_mut_data()? = &mut [];
         }
 
         Account::pack(multisig_info, &mut multisig_account_info.data.borrow_mut())?;
