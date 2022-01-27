@@ -37,7 +37,7 @@ impl Pack for Account {
     const LEN: usize = ACCOUNT_LEN;
     fn pack_into_slice(&self, dst: &mut [u8]) {
         let dst = array_mut_ref![dst, 0, ACCOUNT_LEN];
-
+        #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
             threshold,
@@ -76,7 +76,7 @@ impl Pack for Account {
 
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let input = array_ref![src, 0, ACCOUNT_LEN];
-
+        #[allow(clippy::ptr_offset_with_cast)]
         let (
             is_initialized,
             threshold,
@@ -147,7 +147,7 @@ impl Pack for Transaction {
     const LEN: usize = TRANSACTION_LEN;
     fn pack_into_slice(&self, dst: &mut [u8]) {
         let dst = array_mut_ref![dst, 0, TRANSACTION_LEN];
-
+        #[allow(clippy::ptr_offset_with_cast)]
         let (multisig, recipient, amount, is_executed, signers_len, signers_flat) = mut_array_refs![
             dst,
             PUBKEY_BYTES,
@@ -179,7 +179,7 @@ impl Pack for Transaction {
 
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let input = array_ref![src, 0, TRANSACTION_LEN];
-
+        #[allow(clippy::ptr_offset_with_cast)]
         let (multisig, recipient, amount, is_executed, signers_len, signers_flat) = array_refs![
             input,
             PUBKEY_BYTES,
