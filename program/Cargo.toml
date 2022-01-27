@@ -9,12 +9,17 @@ edition = "2021"
 
 [features]
 no-entrypoint = []
+test-bpf = []
 
 [dependencies]
 arrayref = "0.3"
 borsh = "0.9"
 solana-program = "1.9"
 thiserror = "1.0"
+
+[dev-dependencies]
+solana-program-test = "1.9"
+solana-sdk = "1.9"
 
 [lib]
 crate-type = ["cdylib", "lib"]

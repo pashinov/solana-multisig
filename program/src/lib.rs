@@ -12,6 +12,7 @@ mod utils;
 
 pub use self::error::*;
 pub use self::instruction::*;
+pub use self::processor::*;
 pub use self::state::*;
 pub use self::utils::*;
 
@@ -50,7 +51,7 @@ pub fn create_associated_account(
         accounts: vec![
             AccountMeta::new(*funding_address, true),
             AccountMeta::new(associated_account_address, false),
-            AccountMeta::new_readonly(*wallet_address, false),
+            AccountMeta::new_readonly(*wallet_address, true),
             AccountMeta::new_readonly(solana_program::system_program::id(), false),
             AccountMeta::new_readonly(sysvar::rent::id(), false),
         ],

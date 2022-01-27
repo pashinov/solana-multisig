@@ -12,36 +12,27 @@ use crate::instruction::MultisigInstruction;
 use crate::state::Account;
 use crate::{MultisigError, Transaction, MAX_OWNERS, MAX_TRANSACTIONS};
 
-pub struct Processor<'a, 'b> {
-    program_id: &'a Pubkey,
-    accounts: &'a [AccountInfo<'b>],
-    data: &'a [u8],
-}
-
-impl<'a, 'b> Processor<'a, 'b> {
-    pub fn new(program_id: &'a Pubkey, accounts: &'a [AccountInfo<'b>], data: &'a [u8]) -> Self {
-        Self {
-            program_id,
-            accounts,
-            data,
-        }
-    }
-
-    pub fn process(&self) -> ProgramResult {
-        let instruction = MultisigInstruction::unpack(self.data)?;
+pub struct Processor;
+impl Processor {
+    pub fn process(
+        program_id: &Pubkey,
+        accounts: &[AccountInfo],
+        instruction_data: &[u8],
+    ) -> ProgramResult {
+        let instruction = MultisigInstruction::unpack(instruction_data)?;
 
         match instruction {
             MultisigInstruction::CreateAccount { threshold, owners } => {
                 msg!("Instruction: CreateAccount");
-                Self::process_create_account(self.program_id, self.accounts, threshold, owners)?;
+                Self::process_create_account(program_id, accounts, threshold, owners)?;
             }
             MultisigInstruction::CreateTransaction { amount } => {
                 msg!("Instruction: CreateTransaction");
-                Self::process_create_transaction(self.program_id, self.accounts, amount)?;
+                Self::process_create_transaction(program_id, accounts, amount)?;
             }
             MultisigInstruction::ApproveTransaction => {
                 msg!("Instruction: ApproveTransaction");
-                Self::process_approve_transaction(self.accounts)?;
+                Self::process_approve_transaction(accounts)?;
             }
         };
 
@@ -289,7 +280,6 @@ impl<'a, 'b> Processor<'a, 'b> {
         }
 
         Account::pack(multisig_info, &mut multisig_account_info.data.borrow_mut())?;
-
         Transaction::pack(
             transaction_info,
             &mut transaction_account_info.data.borrow_mut(),
