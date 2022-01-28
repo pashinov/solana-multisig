@@ -58,3 +58,25 @@ pub fn create_associated_account(
         data,
     }
 }
+
+pub fn create_transaction(
+    funding_address: &Pubkey,
+    wallet_address: &Pubkey,
+    transaction_address: &Pubkey,
+    recipient_address: &Pubkey,
+    data: Vec<u8>,
+) -> Instruction {
+    let associated_account_address = get_associated_address(wallet_address);
+
+    Instruction {
+        program_id: id(),
+        accounts: vec![
+            AccountMeta::new(*funding_address, true),
+            AccountMeta::new(*transaction_address, true),
+            AccountMeta::new(associated_account_address, false),
+            AccountMeta::new_readonly(*recipient_address, false),
+            AccountMeta::new_readonly(solana_program::system_program::id(), false),
+        ],
+        data,
+    }
+}

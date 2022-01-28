@@ -3,8 +3,8 @@
 use solana_program::{program_pack::Pack, pubkey::Pubkey};
 use solana_program_test::*;
 use solana_sdk::account::ReadableAccount;
-use solana_sdk::signature::Keypair;
-use solana_sdk::{signature::Signer, transaction::Transaction};
+use solana_sdk::signature::{Keypair, Signer};
+use solana_sdk::transaction::Transaction;
 
 use solana_multisig::*;
 

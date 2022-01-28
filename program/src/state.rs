@@ -4,7 +4,11 @@ use solana_program::program_error::ProgramError;
 use solana_program::program_pack::{IsInitialized, Pack, Sealed};
 use solana_program::pubkey::{Pubkey, PUBKEY_BYTES};
 
-pub const MAX_OWNERS: usize = 8;
+/// Minimum number of multisignature signers
+pub const MIN_SIGNERS: usize = 1;
+/// Maximum number of multisignature signers
+pub const MAX_SIGNERS: usize = 8;
+/// Maximum number of simultaneous pending transactions
 pub const MAX_TRANSACTIONS: usize = 10;
 
 use crate::utils::*;
@@ -52,7 +56,7 @@ impl Pack for Account {
             8,
             4,
             4,
-            PUBKEY_BYTES * MAX_OWNERS + PUBKEY_BYTES * MAX_TRANSACTIONS
+            PUBKEY_BYTES * MAX_SIGNERS + PUBKEY_BYTES * MAX_TRANSACTIONS
         ];
 
         pack_bool(self.is_initialized, is_initialized);
@@ -91,7 +95,7 @@ impl Pack for Account {
             8,
             4,
             4,
-            PUBKEY_BYTES * MAX_OWNERS + PUBKEY_BYTES * MAX_TRANSACTIONS
+            PUBKEY_BYTES * MAX_SIGNERS + PUBKEY_BYTES * MAX_TRANSACTIONS
         ];
 
         let is_initialized = unpack_bool(is_initialized)?;
@@ -155,7 +159,7 @@ impl Pack for Transaction {
             8,
             1,
             4,
-            (32 + 1) * MAX_OWNERS
+            (32 + 1) * MAX_SIGNERS
         ];
 
         *amount = self.amount.to_le_bytes();
@@ -187,7 +191,7 @@ impl Pack for Transaction {
             8,
             1,
             4,
-            (32 + 1) * MAX_OWNERS
+            (32 + 1) * MAX_SIGNERS
         ];
 
         let is_executed = unpack_bool(is_executed)?;

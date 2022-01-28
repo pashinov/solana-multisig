@@ -10,7 +10,7 @@ use solana_program::{msg, system_instruction};
 
 use crate::instruction::MultisigInstruction;
 use crate::state::Account;
-use crate::{MultisigError, Transaction, MAX_OWNERS, MAX_TRANSACTIONS};
+use crate::{MultisigError, Transaction, MAX_SIGNERS, MAX_TRANSACTIONS, MIN_SIGNERS};
 
 pub struct Processor;
 impl Processor {
@@ -65,7 +65,7 @@ impl Processor {
             return Err(ProgramError::InvalidSeeds);
         }
 
-        if owners.len() > MAX_OWNERS {
+        if owners.len() > MAX_SIGNERS || owners.len() < MIN_SIGNERS {
             return Err(MultisigError::CustodianLimit.into());
         }
 
