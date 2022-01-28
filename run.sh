@@ -13,11 +13,11 @@ case $1 in
 	solana program deploy dist/program/solana_multisig.so
 	;;
     "client")
-	(cd client/; cargo run)
+	(cd client/ || exit; shift && cargo run "$@")
 	;;
     "clean")
-	(cd program/; cargo clean)
-	(cd client/; cargo clean)
+	(cd program/ || exit; cargo clean)
+	(cd client/ || exit; cargo clean)
 	rm -rf dist/
 	;;
     *)

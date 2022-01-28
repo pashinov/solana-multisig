@@ -69,3 +69,29 @@ pub fn create_transaction(
 
     Ok(())
 }
+
+pub fn approve_transaction(
+    payer: &Keypair,
+    multisig: &Pubkey,
+    transaction: &Pubkey,
+    recipient: &Pubkey,
+    connection: &RpcClient,
+) -> Result<()> {
+    let mut transaction = Transaction::new_with_payer(
+        &[solana_multisig::approve_transaction(
+            &payer.pubkey(),
+            multisig,
+            transaction,
+            recipient,
+            solana_multisig::MultisigInstruction::ApproveTransaction
+                .pack()
+                .expect("pack"),
+        )],
+        Some(&payer.pubkey()),
+    );
+    transaction.sign(&[payer], connection.get_latest_blockhash()?);
+
+    connection.send_and_confirm_transaction(&transaction)?;
+
+    Ok(())
+}

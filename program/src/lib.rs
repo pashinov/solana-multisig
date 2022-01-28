@@ -80,3 +80,22 @@ pub fn create_transaction(
         data,
     }
 }
+
+pub fn approve_transaction(
+    funding_address: &Pubkey,
+    multisig_address: &Pubkey,
+    transaction_address: &Pubkey,
+    recipient_address: &Pubkey,
+    data: Vec<u8>,
+) -> Instruction {
+    Instruction {
+        program_id: id(),
+        accounts: vec![
+            AccountMeta::new(*funding_address, true),
+            AccountMeta::new(*multisig_address, false),
+            AccountMeta::new(*transaction_address, false),
+            AccountMeta::new(*recipient_address, false),
+        ],
+        data,
+    }
+}

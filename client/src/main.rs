@@ -6,9 +6,10 @@ use clap::{
 
 use solana_clap_utils::input_parsers::value_of;
 use solana_clap_utils::input_validators::{is_amount, is_valid_pubkey};
-use solana_multisig::{MAX_SIGNERS, MIN_SIGNERS};
+use solana_multisig::{Account, Transaction, MAX_SIGNERS, MIN_SIGNERS};
+use solana_program::program_pack::Pack;
 use solana_sdk::pubkey::Pubkey;
-use solana_sdk::signature::Keypair;
+use solana_sdk::signature::{Keypair, Signer};
 
 use solana_multisig_cli::client::*;
 use solana_multisig_cli::error;
@@ -73,6 +74,19 @@ fn main() -> anyhow::Result<()> {
                         .help("Amount to transfer"),
                 ),
         )
+        .subcommand(
+            SubCommand::with_name("approve")
+                .about("Approve multisig transaction")
+                .arg(
+                    Arg::with_name("multisig")
+                        .validator(is_valid_pubkey)
+                        .value_name("MULTISIG")
+                        .takes_value(true)
+                        .index(1)
+                        .required(true)
+                        .help("Multisig address"),
+                ),
+        )
         .get_matches();
 
     let connection = establish_connection()?;
@@ -118,6 +132,36 @@ fn main() -> anyhow::Result<()> {
                 amount,
                 &connection,
             )?
+        }
+        ("approve", Some(arg_matches)) => {
+            let multisig = Pubkey::from_str(
+                value_of::<String>(arg_matches, "multisig")
+                    .ok_or(error::Error::InvalidThreshold)?
+                    .as_str(),
+            )?;
+
+            let multisig_info = connection.get_account(&multisig)?;
+            let multisig_data = Account::unpack(&multisig_info.data)?;
+
+            let mut need_to_approve = Vec::new();
+
+            for pending_transaction in multisig_data.pending_transactions {
+                let pending_transaction_info = connection.get_account(&pending_transaction)?;
+                let pending_transaction_data =
+                    Transaction::unpack_unchecked(&pending_transaction_info.data)?;
+
+                for (signer, is_signed) in pending_transaction_data.signers {
+                    if signer == payer.pubkey() && !is_signed {
+                        need_to_approve
+                            .push((pending_transaction, pending_transaction_data.recipient));
+                        break;
+                    }
+                }
+            }
+
+            for (transaction, recipient) in need_to_approve {
+                approve_transaction(&payer, &multisig, &transaction, &recipient, &connection)?;
+            }
         }
         _ => {}
     };
