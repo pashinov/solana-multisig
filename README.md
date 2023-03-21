@@ -1,3 +1,7 @@
+# ⛔️ DEPRECATED
+
+This repository is now deprecated. You can find updated version [here](https://github.com/broxus/octusbridge-solana-multisig-contracts).
+
 # Solana multisig wallet
 
 Implementation of a multisig wallet on solana. This program allows to create an associated multisig
